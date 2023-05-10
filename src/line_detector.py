@@ -4,7 +4,7 @@ import numpy as np
 import rospy
 import math 
 
-import cv2
+import cv2 as cv
 from cv_bridge import CvBridge, CvBridgeError
 
 from sensor_msgs.msg import Image
@@ -28,59 +28,73 @@ class LineDetector():
     def image_callback(self, image_msg):
         """
         """
-        image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
+        img = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
 
-        debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
+        debug_msg = self.bridge.cv2_to_imgmsg(img, "bgr8")
         self.debug_pub.publish(debug_msg)
-
-        hsv_img = cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+        top_blacked_portion = .5
+        bottom_blacked_portion = .1
+        hsv_img = cv.cvtColor(img,cv.COLOR_BGR2HSV)
+        kernel = np.ones((3,3), np.uint8)
+        min_orange = np.array([5,80,120])  #hsv
+        max_orange = np.array([50,255,255]) #hsv
         height,width, _ = hsv_img.shape
-
-        min_orange = np.array([5,100,160])  # hsv
-        max_orange = np.array([25,255,255]) # hsv
-
-        # how much of the image do we want to black out?
-        portion_top = 0.6
-        bottom_height = int(math.ceil(0.15*height))
-        hsv_img[height-bottom_height:height,:,:]=0
-            
-        #f ilter out designated top portion of image
-        num_r = int(math.ceil(portion_top*height))
+        num_r_top = math.ceil(top_blacked_portion*height)
+        num_r_bot = math.ceil(bottom_blacked_portion*height)
         mask_top = np.ones_like(hsv_img) * 255
-        mask_top[:num_r,:,:] = 0 
-        hsv_img = cv2.bitwise_and(hsv_img,mask_top)
-        kernel =  np.ones((3,3), np.uint8)
+        mask_top[:num_r_top,:,:] = 0 
+        mask_top[height-num_r_bot:height,:,:] = 0
 
+
+        hsv_img = cv.bitwise_and(hsv_img,mask_top)
         # erode and dilate image
-        hsv_img = cv2.erode(hsv_img,kernel,iterations=1)
-        hsv_img = cv2.dilate(hsv_img,kernel,iterations=3)
-
-        mask = cv2.inRange(hsv_img,min_orange,max_orange)  # hsv
-        im2, contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-        lineFound = True
-        try:
-            line_contour = max(contours, key=cv2.contourArea)
-        except ValueError:
-            lineFound = False
+        hsv_img = cv.erode(hsv_img,kernel,iterations=1)
+        hsv_img = cv.dilate(hsv_img,kernel,iterations=3)
+        mask = cv.inRange(hsv_img,min_orange,max_orange)
+        contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
+        cone_contour = max(contours, key=cv.contourArea)
+        x,y,w,h = cv.boundingRect(cone_contour)
+        boundingbox = ((x,y),(x+w,y+h))
+        # try:
+        #     line_contour = max(contours, key=cv2.contourArea)
+        # except ValueError:
+        #     lineFound = False
 
         msg = Point()
-        if lineFound:
-            x,y,w,h = cv2.boundingRect(line_contour)
+        # if lineFound:
+        #     x,y,w,h = cv2.boundingRect(line_contour)
 
-            boundingbox = ((x,y),(x+w,y+h))
+        #     boundingbox = ((x,y),(x+w,y+h))
+        #     x_bot = (2*x+w)/2
+        #     y_bot = y+h
+
+        #     msg.x = x_bot
+        #     msg.y = y_bot
+        # else:
+        #     row_index = int(0.9*height)
+        #     row = hsv_img[row_index,:]
+        #     center = np.argmax(row)
+        #     msg.x = center
+        #     msg.y = row_index        
+        # self.line_pub.publish(msg)
+        search_side_thresh = 0.35
+
+        if w > h:
+            if x < width*search_side_thresh:
+                msg.x = x
+                msg.y = y
+                self.line_pub(msg)
+            else:
+                msg.x = x+w
+                msg.y = y
+                self.line_pub(msg)
+
+        else:
             x_bot = (2*x+w)/2
             y_bot = y+h
-
-            msg.x = x_bot
-            msg.y = y_bot
-        else:
-            row_index = int(0.9*height)
-            row = hsv_img[row_index,:]
-            center = np.argmax(row)
-            msg.x = center
-            msg.y = row_index        
-        self.line_pub.publish(msg)
-
+            msg.x = int(x_bot)
+            msg.y = int(y_bot)
+            self.line_pub(msg)
 
 if __name__ == '__main__':
     try:
