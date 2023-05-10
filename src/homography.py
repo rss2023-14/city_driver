@@ -7,7 +7,7 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
 from std_msgs.msg import String
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, PointStamped
 from sensor_msgs.msg import Image
 from ackermann_msgs.msg import AckermannDriveStamped
 from visualization_msgs.msg import Marker
@@ -53,7 +53,7 @@ METERS_PER_INCH = 0.0254
 class HomographyTransformer:
     def __init__(self):
         self.line_px_sub = rospy.Subscriber("/line_px", Point, self.line_detection_callback)
-        self.lookahead_pub = rospy.Publisher("/lookaheadpoint", Point, queue_size=10)
+        self.lookahead_pub = rospy.Publisher("/lookaheadpoint", PointStamped, queue_size=10)
         self.marker_pub = rospy.Publisher("/viz", Marker, queue_size=1)
 
         if not len(PTS_GROUND_PLANE) == len(PTS_IMAGE_PLANE):
@@ -70,36 +70,32 @@ class HomographyTransformer:
 
         self.h, err = cv2.findHomography(np_pts_image, np_pts_ground)
 
+        # Prepare for transforms between base_link and left_zed_camera
+        self.tf_buffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tf_buffer)
+
     def line_detection_callback(self, msg):
         """
         """
-        #Extract information from message
+        # Pixel coordinates
         u = msg.x
         v = msg.y
 
-        #Call to main function
-        x, y = self.transformUvToXy(u, v)
-        self.draw_marker(x, y, "left_zed_camera")
+        # Transform and viz world coordinates
+        x, y = self.pixel_to_world(u, v)
+        self.draw_marker(x, y, "base_link")
+        pt_cam = PointStamped()
+        pt_cam.header.stamp = rospy.Time.now()
+        pt_cam.header.frame_id = "left_zed_camera"
+        pt_cam.x = x
+        pt_cam.y = y
+        pt_world = self.transform_to_car(pt_cam)
 
-        #Publish relative xy position of object in real world
-        relative_xy_msg = Point()
-        relative_xy_msg.x_pos = x
-        relative_xy_msg.y_pos = y
+        self.lookahead_pub.publish(pt_world)
 
-        self.lookahead_pub.publish(relative_xy_msg)
-
-    def transformUvToXy(self, u, v):
+    def pixel_to_world(self, u, v):
         """
-        u and v are pixel coordinates.
-        The top left pixel is the origin, u axis increases to right, and v axis
-        increases down.
-
-        Returns a normal non-np 1x2 matrix of xy displacement vector from the
-        camera to the point on the ground plane.
-        Camera points along positive x axis and y axis increases to the left of
-        the camera.
-
-        Units are in meters.
+        Transform pixel coordinates (u,v) to world coordinates (x,y)
         """
         homogeneous_point = np.array([[u], [v], [1]])
         xy = np.dot(self.h, homogeneous_point)
@@ -108,6 +104,17 @@ class HomographyTransformer:
         x = homogeneous_xy[0, 0]
         y = homogeneous_xy[1, 0]
         return x, y
+
+    def transform_to_car(self, point):
+        """
+        Takes a PointStamped message and transforms it from the its frame_id frame
+        into the base_link frame, which is where the controller expects it.
+        """
+        try:
+            point_transformed = self.tf_buffer.transform(point, "base_link", rospy.Duration(0.1))
+            return point_transformed
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            raise
 
     def draw_marker(self, x, y, message_frame):
         """
