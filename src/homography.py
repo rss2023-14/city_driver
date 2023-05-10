@@ -7,10 +7,10 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
 from std_msgs.msg import String
+from geometry_msgs.msg import Point
 from sensor_msgs.msg import Image
 from ackermann_msgs.msg import AckermannDriveStamped
 from visualization_msgs.msg import Marker
-from visual_servoing.msg import ConeLocation, ConeLocationPixel
 
 # See lab4/homography_data for images and data used
 
@@ -52,17 +52,14 @@ METERS_PER_INCH = 0.0254
 
 class HomographyTransformer:
     def __init__(self):
-        self.cone_px_sub = rospy.Subscriber("/relative_cone_px", ConeLocationPixel, self.cone_detection_callback)
-        self.cone_pub = rospy.Publisher("/relative_cone", ConeLocation, queue_size=10)
-
-        self.marker_pub = rospy.Publisher("/cone_marker",
-            Marker, queue_size=1)
+        self.line_px_sub = rospy.Subscriber("/line_px", Point, self.line_detection_callback)
+        self.lookahead_pub = rospy.Publisher("/lookaheadpoint", Point, queue_size=10)
+        self.marker_pub = rospy.Publisher("/viz", Marker, queue_size=1)
 
         if not len(PTS_GROUND_PLANE) == len(PTS_IMAGE_PLANE):
             rospy.logerr("ERROR: PTS_GROUND_PLANE and PTS_IMAGE_PLANE should be of same length")
 
         #Initialize data into a homography matrix
-
         np_pts_ground = np.array(PTS_GROUND_PLANE)
         np_pts_ground = np_pts_ground * METERS_PER_INCH
         np_pts_ground = np.float32(np_pts_ground[:, np.newaxis, :])
@@ -73,24 +70,23 @@ class HomographyTransformer:
 
         self.h, err = cv2.findHomography(np_pts_image, np_pts_ground)
 
-    def cone_detection_callback(self, msg):
+    def line_detection_callback(self, msg):
+        """
+        """
         #Extract information from message
-        u = msg.u
-        v = msg.v
+        u = msg.x
+        v = msg.y
 
         #Call to main function
         x, y = self.transformUvToXy(u, v)
-
-        # Draw cone in rviz, what is the zed sensor frame name?
-        self.draw_marker(x, y, "base_link")
+        self.draw_marker(x, y, "left_zed_camera")
 
         #Publish relative xy position of object in real world
-        relative_xy_msg = ConeLocation()
+        relative_xy_msg = Point()
         relative_xy_msg.x_pos = x
         relative_xy_msg.y_pos = y
 
-        self.cone_pub.publish(relative_xy_msg)
-
+        self.lookahead_pub.publish(relative_xy_msg)
 
     def transformUvToXy(self, u, v):
         """
@@ -113,24 +109,22 @@ class HomographyTransformer:
         y = homogeneous_xy[1, 0]
         return x, y
 
-    def draw_marker(self, cone_x, cone_y, message_frame):
+    def draw_marker(self, x, y, message_frame):
         """
-        Publish a marker to represent the cone in rviz.
-        (Call this function if you want)
+        Publish a marker to represent the lookahead point in rviz.
         """
         marker = Marker()
         marker.header.frame_id = message_frame
-        marker.type = marker.CYLINDER
+        marker.type = marker.SPHERE
         marker.action = marker.ADD
         marker.scale.x = .2
         marker.scale.y = .2
         marker.scale.z = .2
         marker.color.a = 1.0
         marker.color.r = 1.0
-        marker.color.g = .5
         marker.pose.orientation.w = 1.0
-        marker.pose.position.x = cone_x
-        marker.pose.position.y = cone_y
+        marker.pose.position.x = x
+        marker.pose.position.y = y
         self.marker_pub.publish(marker)
 
 
