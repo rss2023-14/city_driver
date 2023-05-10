@@ -7,16 +7,13 @@ from visual_servoing.msg import ConeLocation, ParkingError
 from ackermann_msgs.msg import AckermannDriveStamped
 
 
-class ParkingController():
+class LineFollowingController():
     """
     A controller for parking in front of a cone.
     Listens for a relative cone location and publishes control commands.
     Can be used in the simulator and on the real robot.
     """
-
     def __init__(self):
-        # rospy.loginfo("init!")
-
         # determines if we are cone following or line following
         self.cone_mode = False
 
@@ -169,8 +166,8 @@ class ParkingController():
 
 if __name__ == '__main__':
     try:
-        rospy.init_node('ParkingController', anonymous=True)
-        ParkingController()
+        rospy.init_node('line_follower', anonymous=True)
+        lfc = LineFollowingController()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

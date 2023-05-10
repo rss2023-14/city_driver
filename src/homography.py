@@ -135,6 +135,6 @@ class HomographyTransformer:
 
 
 if __name__ == "__main__":
-    rospy.init_node('homography_transformer')
+    rospy.init_node('homography')
     homography_transformer = HomographyTransformer()
     rospy.spin()

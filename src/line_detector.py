@@ -93,16 +93,13 @@ class LineDetector():
             row = hsv_img[row_index,:]
             center = np.argmax(row)
             msg.u = center
-            msg.v = row_index
-        
-        
-
-        
+            msg.v = row_index        
         self.cone_pub.publish(msg)
+
 if __name__ == '__main__':
     try:
         rospy.init_node('line_detector', anonymous=True)
-        ConeDetector()
+        LineDetector()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
