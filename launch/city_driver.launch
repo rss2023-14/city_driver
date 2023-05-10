@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+	<!-- Load parameters -->
+	<rosparam command="load" file="$(find city_driver)/params.yaml"/>
+
+	<!-- Begin line detection and parsing -->
+	<include file="$(find zed_wrapper)/launch/zed.launch"/>
+	<node name="line_detector" pkg="city_driver" type="line_detector.py" output="screen"/>
+	<node name="left_camera_tf_broadcaster" pkg="tf2_ros" type="static_transform_publisher"
+		args="0.24 0.06 0.14 0 0 0 1 base_link left_zed_camera"/>
+	<node name="homography" pkg="city_driver" type="homography.py" output="screen"/>
+
+	<!-- Start controllers -->
+	<!-- <node name="safety_controller" pkg="lane_follower" type="safety_controller.py" output="screen"/> -->
+	<node name="line_following_controller" pkg="lane_follower" type="line_controller.py" output="screen"/>
+</launch>
