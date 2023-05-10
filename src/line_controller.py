@@ -76,7 +76,7 @@ class LineFollowingController():
 
 if __name__ == '__main__':
     try:
-        rospy.init_node('line_follower', anonymous=True)
+        rospy.init_node('line_controller', anonymous=True)
         lfc = LineFollowingController()
         rospy.spin()
     except rospy.ROSInterruptException:
