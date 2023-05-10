@@ -1,0 +1,10 @@
+drive_topic: /vesc/ackermann_cmd_mux/input/navigation
+
+# Controller parameters
+speed: 1.0 # m/s
+max_steering_angle: 90 # deg
+steering_angle_velocity: 0 # deg/s, 0 if no limit
+Kp: 0.4
+Ki: 0.0
+Kd: 0.01
+# our good starting choices were p: 0.4, i: 0.0, d: 0.01
