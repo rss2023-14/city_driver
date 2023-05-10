@@ -12,11 +12,6 @@ from sensor_msgs.msg import Image
 from ackermann_msgs.msg import AckermannDriveStamped
 from visualization_msgs.msg import Marker
 
-# See lab4/homography_data for images and data used
-
-#The following collection of pixel locations and corresponding relative
-#ground plane locations are used to compute our homography matrix
-
 # PTS_IMAGE_PLANE units are in pixels
 # see README.md for coordinate frame description
 
@@ -76,21 +71,23 @@ class HomographyTransformer:
 
     def line_detection_callback(self, msg):
         """
+        Take pixel coordinates in left_zed_camera frame and transform to world
+        coordinates in base_link frame.
         """
-        # Pixel coordinates
+        # Pixel coordinates in left_zed_camera
         u = msg.x
         v = msg.y
 
-        # Transform and viz world coordinates
+        # Transform and viz world coordinates in base_link
         x, y = self.pixel_to_world(u, v)
-        self.draw_marker(x, y, "base_link")
         pt_cam = PointStamped()
         pt_cam.header.stamp = rospy.Time.now()
         pt_cam.header.frame_id = "left_zed_camera"
-        pt_cam.x = x
-        pt_cam.y = y
+        pt_cam.point.x = x
+        pt_cam.point.y = y
         pt_world = self.transform_to_car(pt_cam)
 
+        self.draw_marker(pt_world.point.x, pt_world.point.y, "base_link")
         self.lookahead_pub.publish(pt_world)
 
     def pixel_to_world(self, u, v):
