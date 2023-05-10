@@ -12,6 +12,6 @@
 	<node name="homography" pkg="city_driver" type="homography.py" output="screen"/>
 
 	<!-- Start controllers -->
-	<!-- <node name="safety_controller" pkg="lane_follower" type="safety_controller.py" output="screen"/> -->
-	<node name="line_following_controller" pkg="lane_follower" type="line_controller.py" output="screen"/>
+	<node name="safety_controller" pkg="lane_follower" type="safety_controller.py" output="screen"/>
+	<node name="line_controller" pkg="lane_follower" type="line_controller.py" output="screen"/>
 </launch>

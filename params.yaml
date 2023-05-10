@@ -4,7 +4,12 @@ drive_topic: /vesc/ackermann_cmd_mux/input/navigation
 speed: 1.0 # m/s
 max_steering_angle: 0 # deg, 0 if no limit
 steering_angle_velocity: 0 # deg/s, 0 if no limit
-Kp: 0.4
-Ki: 0.0
-Kd: 0.01
-# our good starting choices were p: 0.4, i: 0.0, d: 0.01
+Kp: 0.4 # 0.4 is good
+Ki: 0.0 # 0.0 is good
+Kd: 0.01 # 0.01 is good
+
+# safety controller parameters
+look_ahead_time: 0.2
+half_car_width: 0.2
+ignore_close_distance: 0.1
+detections_required: 3
