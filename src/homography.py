@@ -3,6 +3,7 @@
 import rospy
 import numpy as np
 
+import tf2_ros
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -85,10 +86,11 @@ class HomographyTransformer:
         pt_cam.header.frame_id = "left_zed_camera"
         pt_cam.point.x = x
         pt_cam.point.y = y
-        pt_world = self.transform_to_car(pt_cam)
+        # pt_world = self.transform_to_car(pt_cam)
 
-        self.draw_marker(pt_world.point.x, pt_world.point.y, "base_link")
-        self.lookahead_pub.publish(pt_world)
+        # self.draw_marker(pt_world.point.x, pt_world.point.y, "base_link")
+        self.draw_marker(pt_cam.point.x, pt_cam.point.y, "left_zed_camera")
+        self.lookahead_pub.publish(pt_cam)
 
     def pixel_to_world(self, u, v):
         """

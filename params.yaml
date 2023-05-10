@@ -1,7 +1,7 @@
 drive_topic: /vesc/ackermann_cmd_mux/input/navigation
 
 # Controller parameters
-speed: 1.0 # m/s
+speed: 0.5 # m/s
 max_steering_angle: 0 # deg, 0 if no limit
 steering_angle_velocity: 0 # deg/s, 0 if no limit
 Kp: 0.4 # 0.4 is good

@@ -10,10 +10,6 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
 
-# import your color segmentation algorithm; call this function in ros_image_callback!
-from computer_vision.color_segmentation import cd_color_segmentation
-
-
 class LineDetector():
     """
     """
@@ -32,15 +28,15 @@ class LineDetector():
 
         debug_msg = self.bridge.cv2_to_imgmsg(img, "bgr8")
         self.debug_pub.publish(debug_msg)
-        top_blacked_portion = .4
+        top_blacked_portion = .5
         bottom_blacked_portion = .1
         hsv_img = cv.cvtColor(img,cv.COLOR_BGR2HSV)
         kernel = np.ones((3,3), np.uint8)
         min_orange = np.array([5,80,120])  #hsv
         max_orange = np.array([50,255,255]) #hsv
         height,width, _ = hsv_img.shape
-        num_r_top = math.ceil(top_blacked_portion*height)
-        num_r_bot = math.ceil(bottom_blacked_portion*height)
+        num_r_top = int(math.ceil(top_blacked_portion*height))
+        num_r_bot = int(math.ceil(bottom_blacked_portion*height))
         mask_top = np.ones_like(hsv_img) * 255
         mask_top[:num_r_top,:,:] = 0 
         mask_top[height-num_r_bot:height,:,:] = 0
@@ -52,7 +48,10 @@ class LineDetector():
         hsv_img = cv.dilate(hsv_img,kernel,iterations=3)
         mask = cv.inRange(hsv_img,min_orange,max_orange)
         contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
-        cone_contour = max(contours, key=cv.contourArea)
+        try:
+            cone_contour = max(contours, key=cv.contourArea)
+        except ValueError:
+            return # No point published!!
         x,y,w,h = cv.boundingRect(cone_contour)
         boundingbox = ((x,y),(x+w,y+h))
         # try:
@@ -81,20 +80,20 @@ class LineDetector():
 
         if w > h:
             if x < width*search_side_thresh:
-                msg.x = x
+                msg.x = x+0.5*w
                 msg.y = y
-                self.line_pub(msg)
+                self.line_pub.publish(msg)
             else:
-                msg.x = x+w
+                msg.x = x+0.5*w
                 msg.y = y
-                self.line_pub(msg)
+                self.line_pub.publish(msg)
 
         else:
             x_bot = (2*x+w)/2
             y_bot = y+h
             msg.x = int(x_bot)
             msg.y = int(y_bot)
-            self.line_pub(msg)
+            self.line_pub.publish(msg)
 
 if __name__ == '__main__':
     try:

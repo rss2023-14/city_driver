@@ -3,7 +3,7 @@
 import rospy
 import numpy as np
 
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import PointStamped
 from ackermann_msgs.msg import AckermannDriveStamped
 
 
@@ -11,7 +11,7 @@ class LineFollowingController():
     """
     """
     def __init__(self):
-        rospy.Subscriber("/lookaheadpoint", Point, self.line_callback)
+        rospy.Subscriber("/lookaheadpoint", PointStamped, self.line_callback)
 
         DRIVE_TOPIC = rospy.get_param("drive_topic")
         self.drive_pub = rospy.Publisher(DRIVE_TOPIC, AckermannDriveStamped, queue_size=10)
@@ -36,8 +36,8 @@ class LineFollowingController():
         dt = (time - self.prev_time).to_sec()
         self.prev_time = time
 
-        x = msg.x # x in front
-        y = msg.y # y to left
+        x = msg.point.x # x in front
+        y = msg.point.y # y to left
 
         dist = np.sqrt((x**2.0)+(y**2.0))
         dist_err = dist
