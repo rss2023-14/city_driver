@@ -32,7 +32,7 @@ class LineDetector():
 
         debug_msg = self.bridge.cv2_to_imgmsg(img, "bgr8")
         self.debug_pub.publish(debug_msg)
-        top_blacked_portion = .5
+        top_blacked_portion = .4
         bottom_blacked_portion = .1
         hsv_img = cv.cvtColor(img,cv.COLOR_BGR2HSV)
         kernel = np.ones((3,3), np.uint8)
