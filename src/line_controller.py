@@ -57,10 +57,12 @@ class LineFollowingController():
         drive_cmd.header.stamp = rospy.Time.now()
         drive_cmd.header.frame_id = "base_link"
 
-        # Find angle and cap it
+        # Find angle
         angle = self.Kp * theta_err + \
             self.Kd * d_theta_dt + self.Ki * self.running_theta_err
-        angle = np.sign(angle)*max(abs(angle), self.MAX_STEERING_ANGLE)
+        if self.MAX_STEERING_ANGLE != 0:
+            # If there is a max steering angle, we limit it
+            angle = np.sign(angle)*max(abs(angle), self.MAX_STEERING_ANGLE)
         drive_cmd.drive.steering_angle = angle
 
         drive_cmd.drive.speed = self.SPEED
