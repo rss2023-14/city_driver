@@ -18,9 +18,7 @@ class LineDetector:
         # Subscribe to ZED camera RGB frames
         self.line_pub = rospy.Publisher("/line_px", Point, queue_size=10)
         self.debug_pub = rospy.Publisher("/debug_img", Image, queue_size=10)
-        self.image_sub = rospy.Subscriber(
-            "/zed/zed_node/rgb/image_rect_color", Image, self.image_callback
-        )
+        self.image_sub = rospy.Subscriber("/zed/zed_node/rgb/image_rect_color", Image, self.image_callback)
         self.bridge = CvBridge()  # Converts between ROS images and OpenCV Images
 
         self.SEARCH_SIDE_THRESHOLD = rospy.get_param("search_side_threshold")
@@ -46,7 +44,7 @@ class LineDetector:
         mask = cv.inRange(hsv_img, min_orange, max_orange)
 
         height, width, _ = hsv_img.shape
-        y_pixel = math.ceil(0.7 * height)
+        y_pixel = int(math.ceil(0.7 * height))
 
         found_x_vals = []
 
@@ -64,6 +62,11 @@ class LineDetector:
         msg.x = int(x_pixel)
         msg.y = int(y_pixel)
         self.line_pub.publish(msg)
+
+        # Plot point and bounding box in debug image
+        debug_img = cv.circle(img, (int(msg.x), int(msg.y)), 0, color=(0, 0, 255), thickness=12)
+        debug_msg = self.bridge.cv2_to_imgmsg(debug_img, "bgr8")  # bgr8 for img, 8UC1 for mask
+        self.debug_pub.publish(debug_msg)
 
     def image_callback(self, image_msg):
         """ """
@@ -114,7 +117,7 @@ class LineDetector:
             if 1.3 * h > w:
                 # Detecting a straight line!
                 self.COUNTER += 1
-            if self.COUNTER > self.STRAIGHT_FRAME_THRESHOLD:
+            if self.COUNTER >= self.STRAIGHT_FRAME_THRESHOLD:
                 # Commit to a straight turn now
                 self.TURN = 0
                 self.COUNTER = 0
@@ -137,15 +140,9 @@ class LineDetector:
         self.line_pub.publish(msg)
 
         # Plot point and bounding box in debug image
-        debug_img = cv.rectangle(
-            img, boundingbox[0], boundingbox[1], color=(255, 0, 0), thickness=2
-        )
-        debug_img = cv.circle(
-            debug_img, (int(msg.x), int(msg.y)), 0, color=(0, 0, 255), thickness=12
-        )
-        debug_msg = self.bridge.cv2_to_imgmsg(
-            debug_img, "bgr8"
-        )  # bgr8 for img, 8UC1 for mask
+        debug_img = cv.rectangle(mask, boundingbox[0], boundingbox[1], color=(255, 0, 0), thickness=2)
+        debug_img = cv.circle(debug_img, (int(msg.x), int(msg.y)), 0, color=(0, 0, 255), thickness=12)
+        debug_msg = self.bridge.cv2_to_imgmsg(debug_img, "8UC1")  # bgr8 for img, 8UC1 for mask
         self.debug_pub.publish(debug_msg)
 
         # OLD CODE
