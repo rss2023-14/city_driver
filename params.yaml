@@ -8,7 +8,10 @@ Kp: 0.4 # 0.4 is good
 Ki: 0.0 # 0.0 is good
 Kd: 0.01 # 0.01 is good
 
-# safety controller parameters
+# Line detector parameters
+search_side_threshold: 0.15
+
+# Safety controller parameters
 look_ahead_time: 0.2
 half_car_width: 0.2
 ignore_close_distance: 0.1
